@@ -8,6 +8,7 @@ import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
 import Contacts from "./pages/Contacts";
 import Emergency from "./pages/Emergency";
+import EmergencyEnhanced from "./pages/EmergencyEnhanced";
 import Alerts from "./pages/Alerts";
 import Admin from "./pages/Admin";
 
@@ -23,7 +24,7 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/contacts" element={<Contacts />} />
-          <Route path="/emergency" element={<Emergency />} />
+          <Route path="/emergency" element={<EmergencyEnhanced />} />
           <Route path="/alerts" element={<Alerts />} />
           <Route path="/admin" element={<Admin />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

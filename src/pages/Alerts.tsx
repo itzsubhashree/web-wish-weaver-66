@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft } from "lucide-react";
+import { EmergencyLogs } from "@/components/EmergencyLogs";
 
 interface Alert {
   id: string;
@@ -97,17 +98,30 @@ export default function Alerts() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background/95 to-primary/5">
+    <div className="min-h-screen gradient-hero">
       <div className="container mx-auto p-6">
         <div className="mb-6 flex items-center gap-4">
           <Button variant="ghost" onClick={() => navigate("/")}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back
           </Button>
-          <h1 className="text-3xl font-bold">Alert History</h1>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-destructive bg-clip-text text-transparent">
+            Alert History
+          </h1>
         </div>
 
-        <div className="space-y-4">
+        {/* Local Storage Logs (FILE HANDLING) */}
+        <div className="mb-6">
+          <EmergencyLogs userId={user?.id} />
+        </div>
+
+        {/* Database Alerts */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Database Alerts (Realtime)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
           {alerts.map((alert) => (
             <Card key={alert.id}>
               <CardHeader>
@@ -135,15 +149,15 @@ export default function Alerts() {
               </CardContent>
             </Card>
           ))}
-        </div>
+            </div>
 
-        {alerts.length === 0 && (
-          <Card>
-            <CardContent className="text-center py-12">
-              <p className="text-muted-foreground">No alerts triggered yet.</p>
-            </CardContent>
-          </Card>
-        )}
+            {alerts.length === 0 && (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">No database alerts yet.</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

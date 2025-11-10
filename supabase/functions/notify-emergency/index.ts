@@ -7,18 +7,49 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    // Verify authentication
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
+      );
+    }
+
     const { alertId } = await req.json();
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    
+    // Create client for user verification with anon key
+    const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+      auth: { persistSession: false }
+    });
 
-    // Fetch alert details with user profile
+    // Extract user from JWT
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+    if (authError || !user) {
+      console.error('Authentication error:', authError);
+      return new Response(
+        JSON.stringify({ error: 'Invalid token' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
+      );
+    }
+
+    console.log(`Processing emergency alert: ${alertId} for user: ${user.id}`);
+
+    // Create admin client for database operations
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Fetch alert and verify ownership
     const { data: alert, error: alertError } = await supabase
       .from("alerts")
       .select(`
@@ -30,9 +61,16 @@ serve(async (req) => {
         )
       `)
       .eq("id", alertId)
+      .eq("user_id", user.id)
       .single();
 
-    if (alertError) throw alertError;
+    if (alertError || !alert) {
+      console.error("Error fetching alert or access denied:", alertError);
+      return new Response(
+        JSON.stringify({ error: "Alert not found or access denied" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 403 }
+      );
+    }
 
     // Fetch user's emergency contacts
     const { data: contacts, error: contactsError } = await supabase
@@ -56,8 +94,8 @@ serve(async (req) => {
 
     console.log(`Emergency alert ${alertId} processed`);
     console.log(`Alert type: ${alert.type}`);
-    console.log(`User: ${alert.profiles.full_name}`);
-    console.log(`Location: ${alert.location_address}`);
+    console.log(`User ID: ${alert.user_id}`);
+    console.log(`Location captured: ${!!alert.location_address}`);
     console.log(`Contacts notified: ${contacts?.length || 0}`);
 
     // In a real implementation, this would:

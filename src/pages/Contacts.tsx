@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ArrowLeft, Plus, Trash2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { z } from "zod";
 
 interface Contact {
   id: string;
@@ -17,6 +18,14 @@ interface Contact {
   email: string;
   priority: number;
 }
+
+const contactSchema = z.object({
+  name: z.string().trim().min(1, "Name is required").max(100, "Name must be less than 100 characters"),
+  phone: z.string().trim().regex(/^[+]?[\d\s()-]{7,20}$/, "Invalid phone number format"),
+  email: z.string().trim().email("Invalid email address").max(255, "Email must be less than 255 characters").optional().or(z.literal('')),
+  relationship: z.string().trim().max(100, "Relationship must be less than 100 characters").optional(),
+  priority: z.number().int().min(1, "Priority must be at least 1").max(5, "Priority must be at most 5")
+});
 
 export default function Contacts() {
   const [user, setUser] = useState<User | null>(null);
@@ -64,6 +73,17 @@ export default function Contacts() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
+
+    // Validate input
+    const result = contactSchema.safeParse(formData);
+    if (!result.success) {
+      toast({
+        title: "Validation error",
+        description: result.error.issues[0].message,
+        variant: "destructive"
+      });
+      return;
+    }
 
     const { error } = await supabase.from("contacts").insert({
       user_id: user.id,

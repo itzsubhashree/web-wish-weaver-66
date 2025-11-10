@@ -8,6 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { z } from "zod";
+
+const statusSchema = z.enum(['pending', 'acknowledged', 'resolved']);
 
 interface Alert {
   id: string;
@@ -114,6 +117,17 @@ export default function Admin() {
   };
 
   const updateAlertStatus = async (alertId: string, newStatus: string) => {
+    // Validate status
+    const result = statusSchema.safeParse(newStatus);
+    if (!result.success) {
+      toast({
+        title: "Validation error",
+        description: "Invalid status value",
+        variant: "destructive"
+      });
+      return;
+    }
+
     const updateData: any = { status: newStatus };
     
     if (newStatus === "acknowledged" && !alerts.find(a => a.id === alertId)?.acknowledged_at) {

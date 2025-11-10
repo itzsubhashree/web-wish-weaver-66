@@ -19,6 +19,15 @@ import { AuthorityAlert } from "@/services/AlertTypes";
 import { NotificationService } from "@/services/NotificationService";
 import { FileHandler } from "@/services/FileHandler";
 import { AlertType } from "@/services/Alert";
+import { z } from "zod";
+
+const alertSchema = z.object({
+  type: z.enum(['medical', 'fire', 'police', 'general']),
+  message: z.string().trim().max(1000, "Message must be less than 1000 characters").optional(),
+  latitude: z.number().min(-90, "Invalid latitude").max(90, "Invalid latitude"),
+  longitude: z.number().min(-180, "Invalid longitude").max(180, "Invalid longitude"),
+  location_address: z.string().max(500, "Location address must be less than 500 characters")
+});
 
 export default function EmergencyEnhanced() {
   const [user, setUser] = useState<User | null>(null);
@@ -130,6 +139,24 @@ export default function EmergencyEnhanced() {
   // OOP: Using Alert classes and NotificationService
   const triggerEmergency = async () => {
     if (!user || !location) return;
+
+    // Validate input
+    const result = alertSchema.safeParse({
+      type: alertType,
+      message: message || undefined,
+      latitude: location.lat,
+      longitude: location.lng,
+      location_address: locationAddress
+    });
+
+    if (!result.success) {
+      toast({
+        title: "Validation error",
+        description: result.error.issues[0].message,
+        variant: "destructive"
+      });
+      return;
+    }
 
     setLoading(true);
     stopPanicSound();

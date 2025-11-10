@@ -9,6 +9,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, MapPin, AlertTriangle } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { z } from "zod";
+
+const alertSchema = z.object({
+  type: z.enum(['medical', 'fire', 'police', 'general']),
+  message: z.string().trim().max(1000, "Message must be less than 1000 characters").optional(),
+  latitude: z.number().min(-90, "Invalid latitude").max(90, "Invalid latitude"),
+  longitude: z.number().min(-180, "Invalid longitude").max(180, "Invalid longitude"),
+  location_address: z.string().max(500, "Location address must be less than 500 characters")
+});
 
 export default function Emergency() {
   const [user, setUser] = useState<User | null>(null);
@@ -65,6 +74,24 @@ export default function Emergency() {
         title: "Location required",
         description: "Please capture your location before triggering an alert.",
         variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate input
+    const result = alertSchema.safeParse({
+      type: alertType,
+      message: message || undefined,
+      latitude: location.lat,
+      longitude: location.lng,
+      location_address: locationAddress
+    });
+
+    if (!result.success) {
+      toast({
+        title: "Validation error",
+        description: result.error.issues[0].message,
+        variant: "destructive"
       });
       return;
     }
